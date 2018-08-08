@@ -38,6 +38,7 @@ type ArchiveOptions struct {
 type PackageLink map[string]string
 
 type Package struct {
+	UID                string                 `json:"uid,omitempty"`
 	Name               string                 `json:"name,omitempty"`
 	Description        string                 `json:"description,omitempty"`
 	Version            string                 `json:"version,omitempty"`
@@ -73,6 +74,4 @@ type Package struct {
 	Source             *Source                `json:"source,omitempty"`
 }
 
-type Repository struct {
-	Packages map[string]map[string]*Package `json:"packages"`
-}
+type PackageVersions map[string]*Package

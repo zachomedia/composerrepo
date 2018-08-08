@@ -36,6 +36,10 @@ func NewConnector(client *gogitlab.Client, group interface{}) (*GitLabConnector,
 	return connector, nil
 }
 
+func (conn *GitLabConnector) GetName() string {
+	return strings.Replace(strings.ToLower(conn.Group.FullPath), "/", "-", -1)
+}
+
 func (conn *GitLabConnector) getProjects() ([]*gogitlab.Project, error) {
 	projects := make([]*gogitlab.Project, 0)
 
@@ -165,6 +169,9 @@ func (conn *GitLabConnector) getProjectVersions(project *gogitlab.Project) (map[
 			// Set version
 			pkg.Version = fmt.Sprintf("dev-%s", branch.Name)
 
+			// Set source by commit
+			pkg.Source.Reference = branch.Commit.ID
+
 			versions[pkg.Version] = pkg
 		} else if tag, ok := ref.(*gogitlab.Tag); ok {
 			pkg, err := conn.getRefPackage(project, tag.Name)
@@ -174,6 +181,9 @@ func (conn *GitLabConnector) getProjectVersions(project *gogitlab.Project) (map[
 
 			// Set version
 			pkg.Version = tag.Name
+
+			// Set source by commit
+			pkg.Source.Reference = tag.Commit.ID
 
 			// Convert Drupal version number to valid version number
 			r, err := regexp.Compile("\\d+\\.x-(\\d+\\.\\d+(-.*)?)")
@@ -206,8 +216,8 @@ func (conn *GitLabConnector) getProjectVersions(project *gogitlab.Project) (map[
 	return versions, nil
 }
 
-func (conn *GitLabConnector) GetPackages() (map[string]map[string]*composer.Package, error) {
-	packages := make(map[string]map[string]*composer.Package)
+func (conn *GitLabConnector) GetPackages() (composer.Packages, error) {
+	packages := make(composer.Packages)
 
 	projects, err := conn.getProjects()
 	if err != nil {
