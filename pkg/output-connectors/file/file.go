@@ -13,7 +13,8 @@ import (
 )
 
 type FileOutput struct {
-	Out string
+	Out      string
+	BasePath string
 }
 
 func (fo *FileOutput) ensureFolder(f string) error {
@@ -40,6 +41,10 @@ func (fo *FileOutput) generateContentsAndHash(obj interface{}) ([]byte, string, 
 	}
 
 	return b, fmt.Sprintf("%x", sha256.Sum256(b)), nil
+}
+
+func (fo *FileOutput) GetBasePath() string {
+	return fo.BasePath
 }
 
 func (fo *FileOutput) WriteRepository(repo *composer.Repository) error {

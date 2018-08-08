@@ -1,6 +1,8 @@
 package composer
 
 type OutputConnector interface {
+	GetBasePath() string
+
 	WriteRepository(repo *Repository) error
 	Write(name string, repo *Repository) (string, error)
 }

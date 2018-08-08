@@ -67,7 +67,8 @@ func generate(c *cli.Context) error {
 	}
 
 	fileOut := &file.FileOutput{
-		Out: c.String("out-dir"),
+		Out:      c.String("out-dir"),
+		BasePath: c.String("base-path"),
 	}
 	return composer.Generate(&composer.GenerateConfig{
 		OutputConnector: fileOut,
@@ -106,6 +107,12 @@ func main() {
 					Name:   "providers, p",
 					Usage:  "Seperate packages into providers.",
 					EnvVar: "PROVIDERS",
+				},
+				cli.StringFlag{
+					Name:   "base-path, b",
+					Usage:  "Base path (web) to use when generating providers (NOTE: must start with a /).",
+					EnvVar: "BASE_PATH",
+					Value:  "/",
 				},
 			},
 		},

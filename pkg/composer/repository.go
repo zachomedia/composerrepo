@@ -29,7 +29,7 @@ func Generate(conf *GenerateConfig) error {
 
 	if conf.UseProviders {
 		repo.ProviderIncludes = make(map[string]*Reference, 0)
-		repo.ProvidersURL = "/p/%package%$%hash%.json"
+		repo.ProvidersURL = fmt.Sprintf("%s/p/%%package%%$%%hash%%.json", conf.OutputConnector.GetBasePath())
 	} else {
 		repo.Packages = make(Packages)
 	}
