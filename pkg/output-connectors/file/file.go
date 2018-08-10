@@ -47,24 +47,35 @@ func (fo *FileOutput) GetBasePath() string {
 	return fo.BasePath
 }
 
-func (fo *FileOutput) WriteRepository(repo *composer.Repository) error {
-	fPath := path.Join(fo.Out, "packages.json")
-	log.Printf("Writing repository %q", fPath)
+func (fo *FileOutput) GetRepository() (*composer.Repository, error) {
+	return fo.Get("packages.json")
+}
 
-	// Ensure the directory structure is correct.
-	if err := fo.ensureFolder(fo.Out); err != nil {
-		return err
-	}
+func (fo *FileOutput) Get(name string) (*composer.Repository, error) {
+	fPath := path.Join(fo.Out, path.Join(strings.Split(name, "/")...))
+	log.Printf("Reading package %q", fPath)
 
 	// Write packages.json
-	f, err := os.Create(fPath)
+	f, err := os.Open(fPath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer f.Close()
 
-	encoder := json.NewEncoder(f)
-	return encoder.Encode(repo)
+	decoder := json.NewDecoder(f)
+
+	repo := composer.Repository{}
+	err = decoder.Decode(&repo)
+	if err != nil {
+		return nil, err
+	}
+
+	return &repo, nil
+}
+
+func (fo *FileOutput) WriteRepository(repo *composer.Repository) error {
+	_, err := fo.Write("packages.json", repo)
+	return err
 }
 
 func (fo *FileOutput) Write(name string, repo *composer.Repository) (string, error) {

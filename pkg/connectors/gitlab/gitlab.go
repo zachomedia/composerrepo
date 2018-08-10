@@ -13,12 +13,14 @@ import (
 )
 
 type GitLabConnector struct {
+	ID     string
 	Client *gogitlab.Client
 	Group  *gogitlab.Group
 }
 
-func NewConnector(client *gogitlab.Client, group interface{}) (*GitLabConnector, error) {
+func NewConnector(id string, client *gogitlab.Client, group interface{}) (*GitLabConnector, error) {
 	connector := &GitLabConnector{
+		ID:     id,
 		Client: client,
 	}
 
@@ -34,6 +36,10 @@ func NewConnector(client *gogitlab.Client, group interface{}) (*GitLabConnector,
 	}
 
 	return connector, nil
+}
+
+func (conn *GitLabConnector) GetID() string {
+	return conn.ID
 }
 
 func (conn *GitLabConnector) GetName() string {
@@ -236,4 +242,13 @@ func (conn *GitLabConnector) GetPackages() (composer.Packages, error) {
 	}
 
 	return packages, nil
+}
+
+func (conn *GitLabConnector) GetPackage(packageName string) (composer.PackageVersions, error) {
+	project, _, err := conn.Client.Projects.GetProject(packageName)
+	if err != nil {
+		return nil, err
+	}
+
+	return conn.getProjectVersions(project)
 }
