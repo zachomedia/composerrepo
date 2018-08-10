@@ -23,9 +23,9 @@ func newGitLabConnector(id, url, token, group string) (*gitlab.GitLabConnector, 
 	return gitlab.NewConnector(id, client, group)
 }
 
-func getConnectorsConfig(c *cli.Context) ([]map[string]string, error) {
+func getConnectorsConfig(c *cli.Context) (map[string]map[string]string, error) {
 	// Read config
-	config := make([]map[string]string, 0)
+	config := make(map[string]map[string]string, 0)
 
 	f, err := os.Open(c.GlobalString("config"))
 	if err != nil {
@@ -49,14 +49,14 @@ func loadConnectors(c *cli.Context) (map[string]composer.Connector, error) {
 		return nil, err
 	}
 
-	for _, connectorDef := range config {
+	for id, connectorDef := range config {
 		if _, ok := connectorDef["type"]; !ok {
 			return nil, errors.New("No connector type defined")
 		}
 
 		switch connectorDef["type"] {
 		case "gitlab":
-			connector, err := newGitLabConnector(connectorDef["id"], connectorDef["url"], connectorDef["token"], connectorDef["group"])
+			connector, err := newGitLabConnector(id, connectorDef["url"], connectorDef["token"], connectorDef["group"])
 			if err != nil {
 				return nil, err
 			}
