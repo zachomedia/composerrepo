@@ -2,6 +2,18 @@
 
 
 [[projects]]
+  name = "github.com/Azure/azure-pipeline-go"
+  packages = ["pipeline"]
+  revision = "7571e8eb0876932ab505918ff7ed5107773e5ee2"
+  version = "0.1.7"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/Azure/azure-storage-blob-go"
+  packages = ["2018-03-28/azblob"]
+  revision = "197d1c0aea1b9eedbbaee0a1a32bf81e879bde80"
+
+[[projects]]
   name = "github.com/golang/protobuf"
   packages = ["proto"]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
@@ -66,6 +78,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a1b67fda22e182fa0691fa938e316ecf660f7383fed971856b74aa492ccc23f1"
+  inputs-digest = "3429702ef88d7933066016113ec440ba3685eecf0ef9ed1d55da32632bc445ce"
   solver-name = "gps-cdcl"
   solver-version = 1

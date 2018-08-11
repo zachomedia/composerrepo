@@ -10,7 +10,6 @@ import (
 
 	gogitlab "github.com/xanzy/go-gitlab"
 	"github.com/zachomedia/composerrepo/pkg/composer"
-	"github.com/zachomedia/composerrepo/pkg/composer/repository"
 )
 
 type GitLabInput struct {
@@ -218,8 +217,8 @@ func (input *GitLabInput) getProjectVersions(project *gogitlab.Project) (map[str
 	return versions, nil
 }
 
-func (input *GitLabInput) GetPackages() (repository.Packages, error) {
-	packages := make(repository.Packages)
+func (input *GitLabInput) GetPackages() (composer.Packages, error) {
+	packages := make(composer.Packages)
 
 	projects, err := input.getProjects()
 	if err != nil {

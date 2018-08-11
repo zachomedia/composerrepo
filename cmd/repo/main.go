@@ -5,13 +5,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/zachomedia/composerrepo/pkg/composer/repository"
+	"github.com/zachomedia/composerrepo/pkg/composer"
 	"github.com/zachomedia/composerrepo/pkg/config"
 
 	"github.com/urfave/cli"
 )
 
-func getConfig(c *cli.Context) (*repository.Config, error) {
+func getConfig(c *cli.Context) (*composer.Config, error) {
 	f, err := os.Open(c.GlobalString("config"))
 	if err != nil {
 		return nil, err
@@ -27,7 +27,7 @@ func generate(c *cli.Context) error {
 		return err
 	}
 
-	return repository.Generate(conf)
+	return composer.Generate(conf)
 }
 
 func update(c *cli.Context) error {
@@ -36,18 +36,18 @@ func update(c *cli.Context) error {
 		return err
 	}
 
-	packages := make([]*repository.PackageInfo, 0)
+	packages := make([]*composer.PackageInfo, 0)
 
 	for _, arg := range c.Args() {
 		components := strings.SplitN(arg, ":", 2)
 
-		packages = append(packages, &repository.PackageInfo{
+		packages = append(packages, &composer.PackageInfo{
 			InputID:     components[0],
 			PackageName: components[1],
 		})
 	}
 
-	return repository.Update(conf, packages)
+	return composer.Update(conf, packages)
 }
 
 func main() {
@@ -70,13 +70,13 @@ func main() {
 		{
 			Name:    "generate",
 			Aliases: []string{"g"},
-			Usage:   "Generate the repository.",
+			Usage:   "Generate the composer.",
 			Action:  generate,
 		},
 		{
 			Name:    "update",
 			Aliases: []string{"u"},
-			Usage:   "Updates a specific package in the repository.",
+			Usage:   "Updates a specific package in the composer.",
 			Action:  update,
 		},
 	}

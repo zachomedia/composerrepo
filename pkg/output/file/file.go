@@ -4,12 +4,11 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"strings"
-
-	"github.com/zachomedia/composerrepo/pkg/composer/repository"
 )
 
 type FileOutput struct {
@@ -59,11 +58,7 @@ func (fo *FileOutput) GetBasePath() string {
 	return fo.BasePath
 }
 
-func (fo *FileOutput) GetRepository() (*repository.Repository, error) {
-	return fo.Get("packages.json")
-}
-
-func (fo *FileOutput) Get(name string) (*repository.Repository, error) {
+func (fo *FileOutput) Get(name string) ([]byte, error) {
 	fPath := path.Join(fo.Out, path.Join(strings.Split(name, "/")...))
 	log.Printf("Reading package %q", fPath)
 
@@ -74,50 +69,27 @@ func (fo *FileOutput) Get(name string) (*repository.Repository, error) {
 	}
 	defer f.Close()
 
-	decoder := json.NewDecoder(f)
-
-	repo := repository.Repository{}
-	err = decoder.Decode(&repo)
-	if err != nil {
-		return nil, err
-	}
-
-	return &repo, nil
+	return ioutil.ReadAll(f)
 }
 
-func (fo *FileOutput) WriteRepository(repo *repository.Repository) error {
-	_, err := fo.Write("packages.json", repo)
-	return err
-}
-
-func (fo *FileOutput) Write(name string, repo *repository.Repository) (string, error) {
+func (fo *FileOutput) Write(name string, data []byte) error {
 	components := strings.Split(name, "/")
 
 	// Ensure the directory structure is correct.
 	if err := fo.ensureFolder(path.Join(fo.Out, path.Join(components[:len(components)-1]...))); err != nil {
-		return "", err
+		return err
 	}
 
-	// To JSON + hash
-	contents, hash, err := fo.generateContentsAndHash(repo)
-	if err != nil {
-		return "", err
-	}
-
-	fPath := path.Join(fo.Out, path.Join(strings.Split(strings.Replace(name, "%hash%", hash, -1), "/")...))
+	fPath := path.Join(fo.Out, path.Join(strings.Split(name, "/")...))
 	log.Printf("Writing package %q", fPath)
 
 	// Write packages.json
 	f, err := os.Create(fPath)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer f.Close()
 
-	_, err = f.Write(contents)
-	if err != nil {
-		return "", err
-	}
-
-	return hash, nil
+	_, err = f.Write(data)
+	return err
 }

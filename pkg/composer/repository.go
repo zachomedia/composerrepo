@@ -1,10 +1,10 @@
-package repository
+package composer
 
 import (
+	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"strings"
-
-	"github.com/zachomedia/composerrepo/pkg/composer"
 )
 
 type Input interface {
@@ -13,14 +13,14 @@ type Input interface {
 	GetID() string
 	GetName() string
 	GetPackages() (Packages, error)
-	GetPackage(packageName string) (composer.PackageVersions, error)
+	GetPackage(packageName string) (PackageVersions, error)
 }
 
 type Transform interface {
 	Init(id string, conf map[string]interface{}) error
 
 	Skip(input *Input, pkgName string) (bool, error)
-	Transform(input *Input, pkg *composer.Package) error
+	Transform(input *Input, pkg *Package) error
 }
 
 type Output interface {
@@ -28,10 +28,8 @@ type Output interface {
 
 	GetBasePath() string
 
-	GetRepository() (*Repository, error)
-	Get(name string) (*Repository, error)
-	WriteRepository(repo *Repository) error
-	Write(name string, repo *Repository) (string, error)
+	Get(name string) ([]byte, error)
+	Write(name string, data []byte) error
 }
 
 type Config struct {
@@ -45,7 +43,7 @@ type Reference struct {
 	SHA256 string `json:"sha256"`
 }
 
-type Packages map[string]composer.PackageVersions
+type Packages map[string]PackageVersions
 
 type Repository struct {
 	Packages         Packages              `json:"packages,omitempty"`
@@ -57,6 +55,15 @@ type Repository struct {
 type PackageInfo struct {
 	InputID     string
 	PackageName string
+}
+
+func generateContentsAndHash(obj interface{}) ([]byte, string, error) {
+	b, err := json.Marshal(obj)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return b, fmt.Sprintf("%x", sha256.Sum256(b)), nil
 }
 
 // Generate generates the repository.
@@ -88,11 +95,16 @@ func Generate(conf *Config) error {
 					version.UID = fmt.Sprintf("%s@%s", version.Name, version.Version)
 				}
 
-				hash, err := conf.Output.Write(fmt.Sprintf("p/%s$%%hash%%.json", name), &Repository{
+				contents, hash, err := generateContentsAndHash(&Repository{
 					Packages: Packages{
 						name: versions,
 					},
 				})
+				if err != nil {
+					return err
+				}
+
+				err = conf.Output.Write(fmt.Sprintf("p/%s$%s.json", name, hash), contents)
 				if err != nil {
 					return err
 				}
@@ -107,7 +119,13 @@ func Generate(conf *Config) error {
 
 		if conf.UseProviders {
 			providerPath := fmt.Sprintf("p/provider-%s$%%hash%%.json", connector.GetID())
-			hash, err := conf.Output.Write(providerPath, provider)
+
+			contents, hash, err := generateContentsAndHash(provider)
+			if err != nil {
+				return err
+			}
+
+			err = conf.Output.Write(strings.Replace(providerPath, "%hash%", hash, -1), contents)
 			if err != nil {
 				return err
 			}
@@ -118,13 +136,25 @@ func Generate(conf *Config) error {
 		}
 	}
 
-	return conf.Output.WriteRepository(repo)
+	contents, _, err := generateContentsAndHash(repo)
+	if err != nil {
+		return err
+	}
+
+	return conf.Output.Write("packages.json", contents)
 }
 
 // Update updates packages in the repository.
 func Update(conf *Config, packageInfos []*PackageInfo) error {
+	repo := Repository{}
+
 	// Read the current repository
-	repo, err := conf.Output.GetRepository()
+	repoData, err := conf.Output.Get("packages.json")
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(repoData, &repo)
 	if err != nil {
 		return err
 	}
@@ -146,18 +176,30 @@ func Update(conf *Config, packageInfos []*PackageInfo) error {
 					return fmt.Errorf("No connector matching %q", packageInfo.InputID)
 				}
 
-				provider, err := conf.Output.Get(strings.Replace(providerID, "%hash%", providerInfo.SHA256, -1))
+				provider := &Repository{}
+				providerData, err := conf.Output.Get(strings.Replace(providerID, "%hash%", providerInfo.SHA256, -1))
 				if err != nil {
 					return err
 				}
+
+				err = json.Unmarshal(providerData, &provider)
+				if err != nil {
+					return err
+				}
+
 				providers[packageInfo.InputID] = provider
 			}
 
-			hash, err := conf.Output.Write(fmt.Sprintf("p/%s$%%hash%%.json", packageInfo.PackageName), &Repository{
+			contents, hash, err := generateContentsAndHash(&Repository{
 				Packages: Packages{
 					packageInfo.PackageName: pkg,
 				},
 			})
+			if err != nil {
+				return err
+			}
+
+			err = conf.Output.Write(fmt.Sprintf("p/%s$%s.json", packageInfo.PackageName, hash), contents)
 			if err != nil {
 				return err
 			}
@@ -174,7 +216,13 @@ func Update(conf *Config, packageInfos []*PackageInfo) error {
 	if conf.UseProviders {
 		for providerID, provider := range providers {
 			providerPath := fmt.Sprintf("p/provider-%s$%%hash%%.json", providerID)
-			hash, err := conf.Output.Write(providerPath, provider)
+
+			contents, hash, err := generateContentsAndHash(provider)
+			if err != nil {
+				return err
+			}
+
+			err = conf.Output.Write(strings.Replace(providerPath, "%hash%", hash, -1), contents)
 			if err != nil {
 				return err
 			}
@@ -185,5 +233,10 @@ func Update(conf *Config, packageInfos []*PackageInfo) error {
 		}
 	}
 
-	return conf.Output.WriteRepository(repo)
+	contents, _, err := generateContentsAndHash(repo)
+	if err != nil {
+		return err
+	}
+
+	return conf.Output.Write("packages.json", contents)
 }

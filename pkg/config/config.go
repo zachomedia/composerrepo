@@ -5,23 +5,25 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/zachomedia/composerrepo/pkg/composer/repository"
+	"github.com/zachomedia/composerrepo/pkg/composer"
 	"github.com/zachomedia/composerrepo/pkg/input/gitlab"
+	"github.com/zachomedia/composerrepo/pkg/output/azure"
 	"github.com/zachomedia/composerrepo/pkg/output/file"
 	yaml "gopkg.in/yaml.v2"
 )
 
-var InputTypes = map[string]repository.Input{
+var InputTypes = map[string]composer.Input{
 	"gitlab": &gitlab.GitLabInput{},
 }
 
-var TransformerTypes = map[string]repository.Transform{}
+var TransformerTypes = map[string]composer.Transform{}
 
-var OutputTypes = map[string]repository.Output{
-	"file": &file.FileOutput{},
+var OutputTypes = map[string]composer.Output{
+	"azure": &azure.AzureOutput{},
+	"file":  &file.FileOutput{},
 }
 
-func ConfigFromYAML(reader io.Reader) (*repository.Config, error) {
+func ConfigFromYAML(reader io.Reader) (*composer.Config, error) {
 	type config struct {
 		UseProviders bool                              `yaml:"providers"`
 		Inputs       map[string]map[string]interface{} `yaml:"inputs"`
@@ -40,10 +42,10 @@ func ConfigFromYAML(reader io.Reader) (*repository.Config, error) {
 	}
 
 	// Initialize each config item
-	conf := &repository.Config{
+	conf := &composer.Config{
 		UseProviders: rawConfig.UseProviders,
-		Inputs:       make(map[string]repository.Input),
-		Transformers: make(map[string]repository.Transform),
+		Inputs:       make(map[string]composer.Input),
+		Transformers: make(map[string]composer.Transform),
 	}
 
 	for k, raw := range rawConfig.Inputs {
