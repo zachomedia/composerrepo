@@ -1,127 +1,53 @@
 package main
 
 import (
-	"errors"
-	"fmt"
 	"log"
 	"os"
 	"strings"
 
-	"github.com/zachomedia/composerrepo/pkg/composer"
-	"github.com/zachomedia/composerrepo/pkg/output-connectors/file"
-	yaml "gopkg.in/yaml.v2"
+	"github.com/zachomedia/composerrepo/pkg/composer/repository"
+	"github.com/zachomedia/composerrepo/pkg/config"
 
 	"github.com/urfave/cli"
-	gogitlab "github.com/xanzy/go-gitlab"
-	"github.com/zachomedia/composerrepo/pkg/connectors/gitlab"
 )
 
-func newGitLabConnector(id, url, token, group string) (*gitlab.GitLabConnector, error) {
-	client := gogitlab.NewClient(nil, token)
-	client.SetBaseURL(url)
-
-	return gitlab.NewConnector(id, client, group)
-}
-
-func getConnectorsConfig(c *cli.Context) (map[string]map[string]string, error) {
-	// Read config
-	config := make(map[string]map[string]string, 0)
-
+func getConfig(c *cli.Context) (*repository.Config, error) {
 	f, err := os.Open(c.GlobalString("config"))
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
-	dec := yaml.NewDecoder(f)
-	err = dec.Decode(&config)
-	if err != nil {
-		return nil, err
-	}
-
-	return config, nil
-}
-
-func loadConnectors(c *cli.Context) (map[string]composer.Connector, error) {
-	connectors := make(map[string]composer.Connector, 0)
-
-	config, err := getConnectorsConfig(c)
-	if err != nil {
-		return nil, err
-	}
-
-	for id, connectorDef := range config {
-		if _, ok := connectorDef["type"]; !ok {
-			return nil, errors.New("No connector type defined")
-		}
-
-		switch connectorDef["type"] {
-		case "gitlab":
-			connector, err := newGitLabConnector(id, connectorDef["url"], connectorDef["token"], connectorDef["group"])
-			if err != nil {
-				return nil, err
-			}
-
-			connectors[connector.GetID()] = connector
-		default:
-			return nil, fmt.Errorf("Unknown connector %q", connectorDef["type"])
-		}
-	}
-
-	return connectors, nil
-}
-
-func loadOutputConnector(c *cli.Context) (composer.OutputConnector, error) {
-	return &file.FileOutput{
-		Out:      c.GlobalString("out-dir"),
-		BasePath: c.GlobalString("base-path"),
-	}, nil
+	return config.ConfigFromYAML(f)
 }
 
 func generate(c *cli.Context) error {
-	connectors, err := loadConnectors(c)
+	conf, err := getConfig(c)
 	if err != nil {
 		return err
 	}
 
-	output, err := loadOutputConnector(c)
-	if err != nil {
-		return err
-	}
-
-	return composer.Generate(&composer.GenerateConfig{
-		OutputConnector: output,
-		Connectors:      connectors,
-		UseProviders:    c.GlobalBool("providers"),
-	})
+	return repository.Generate(conf)
 }
 
-func regenerate(c *cli.Context) error {
-	connectors, err := loadConnectors(c)
+func update(c *cli.Context) error {
+	conf, err := getConfig(c)
 	if err != nil {
 		return err
 	}
 
-	output, err := loadOutputConnector(c)
-	if err != nil {
-		return err
-	}
-
-	packages := make([]*composer.PackageInfo, 0)
+	packages := make([]*repository.PackageInfo, 0)
 
 	for _, arg := range c.Args() {
 		components := strings.SplitN(arg, ":", 2)
 
-		packages = append(packages, &composer.PackageInfo{
-			ConnectorID: components[0],
+		packages = append(packages, &repository.PackageInfo{
+			InputID:     components[0],
 			PackageName: components[1],
 		})
 	}
 
-	return composer.Update(&composer.GenerateConfig{
-		OutputConnector: output,
-		Connectors:      connectors,
-		UseProviders:    c.GlobalBool("providers"),
-	}, packages)
+	return repository.Update(conf, packages)
 }
 
 func main() {
@@ -134,26 +60,9 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "config, c",
-			Usage:  "Location of the connectors YAML configuration file.",
-			EnvVar: "CONNECTORS_CONFIG",
-			Value:  "connectors.yml",
-		},
-		cli.StringFlag{
-			Name:   "out-dir, o",
-			Usage:  "Directory to place the generated repository.",
-			EnvVar: "OUTPUT_DIRECTORY",
-			Value:  "out",
-		},
-		cli.BoolFlag{
-			Name:   "providers, p",
-			Usage:  "Seperate packages into providers.",
-			EnvVar: "PROVIDERS",
-		},
-		cli.StringFlag{
-			Name:   "base-path, b",
-			Usage:  "Base path (web) to use when generating providers (NOTE: must start with a /).",
-			EnvVar: "BASE_PATH",
-			Value:  "/",
+			Usage:  "Location of the YAML configuration file.",
+			EnvVar: "CONFIG_PATH",
+			Value:  "config.yml",
 		},
 	}
 
@@ -161,14 +70,14 @@ func main() {
 		{
 			Name:    "generate",
 			Aliases: []string{"g"},
-			Usage:   "Generate the packages.json file.",
+			Usage:   "Generate the repository.",
 			Action:  generate,
 		},
 		{
-			Name:    "regenerate",
-			Aliases: []string{"r"},
-			Usage:   "Regenerates a specific package.",
-			Action:  regenerate,
+			Name:    "update",
+			Aliases: []string{"u"},
+			Usage:   "Updates a specific package in the repository.",
+			Action:  update,
 		},
 	}
 

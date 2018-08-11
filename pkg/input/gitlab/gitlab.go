@@ -10,43 +10,39 @@ import (
 
 	gogitlab "github.com/xanzy/go-gitlab"
 	"github.com/zachomedia/composerrepo/pkg/composer"
+	"github.com/zachomedia/composerrepo/pkg/composer/repository"
 )
 
-type GitLabConnector struct {
+type GitLabInput struct {
 	ID     string
 	Client *gogitlab.Client
 	Group  *gogitlab.Group
 }
 
-func NewConnector(id string, client *gogitlab.Client, group interface{}) (*GitLabConnector, error) {
-	connector := &GitLabConnector{
-		ID:     id,
-		Client: client,
+func (input *GitLabInput) Init(id string, conf map[string]interface{}) error {
+	input.ID = id
+	input.Client = gogitlab.NewClient(nil, conf["token"].(string))
+	input.Client.SetBaseURL(conf["url"].(string))
+
+	group, _, err := input.Client.Groups.GetGroup(conf["group"].(string))
+	if err != nil {
+		return err
 	}
 
-	if groupObj, ok := group.(*gogitlab.Group); ok {
-		connector.Group = groupObj
-	} else {
-		groupObj, _, err := connector.Client.Groups.GetGroup(group)
-		if err != nil {
-			return nil, err
-		}
+	input.Group = group
 
-		connector.Group = groupObj
-	}
-
-	return connector, nil
+	return nil
 }
 
-func (conn *GitLabConnector) GetID() string {
-	return conn.ID
+func (input *GitLabInput) GetID() string {
+	return input.ID
 }
 
-func (conn *GitLabConnector) GetName() string {
-	return strings.Replace(strings.ToLower(conn.Group.FullPath), "/", "-", -1)
+func (input *GitLabInput) GetName() string {
+	return strings.Replace(strings.ToLower(input.Group.FullPath), "/", "-", -1)
 }
 
-func (conn *GitLabConnector) getProjects() ([]*gogitlab.Project, error) {
+func (input *GitLabInput) getProjects() ([]*gogitlab.Project, error) {
 	projects := make([]*gogitlab.Project, 0)
 
 	simple := true
@@ -58,14 +54,14 @@ func (conn *GitLabConnector) getProjects() ([]*gogitlab.Project, error) {
 		},
 	}
 
-	inProjects, res, err := conn.Client.Groups.ListGroupProjects(conn.Group.ID, opts)
+	inProjects, res, err := input.Client.Groups.ListGroupProjects(input.Group.ID, opts)
 	projects = append(projects, inProjects...)
 	if err != nil {
 		return nil, err
 	}
 	for page := 2; page < res.TotalPages; page++ {
 		opts.ListOptions.Page = page
-		inProjects, _, err := conn.Client.Groups.ListGroupProjects(conn.Group.ID, opts)
+		inProjects, _, err := input.Client.Groups.ListGroupProjects(input.Group.ID, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +71,7 @@ func (conn *GitLabConnector) getProjects() ([]*gogitlab.Project, error) {
 	return projects, nil
 }
 
-func (conn *GitLabConnector) getProjectRefs(project *gogitlab.Project) ([]interface{}, error) {
+func (input *GitLabInput) getProjectRefs(project *gogitlab.Project) ([]interface{}, error) {
 	refs := make([]interface{}, 0)
 
 	// Get branches
@@ -83,7 +79,7 @@ func (conn *GitLabConnector) getProjectRefs(project *gogitlab.Project) ([]interf
 		PerPage: 100,
 		Page:    1,
 	}
-	branches, branchesResp, err := conn.Client.Branches.ListBranches(project.ID, branchesOpts)
+	branches, branchesResp, err := input.Client.Branches.ListBranches(project.ID, branchesOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +89,7 @@ func (conn *GitLabConnector) getProjectRefs(project *gogitlab.Project) ([]interf
 
 	for page := 1; page < branchesResp.TotalPages; page++ {
 		branchesOpts.Page = page
-		branches, _, err := conn.Client.Branches.ListBranches(project.ID, branchesOpts)
+		branches, _, err := input.Client.Branches.ListBranches(project.ID, branchesOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -109,7 +105,7 @@ func (conn *GitLabConnector) getProjectRefs(project *gogitlab.Project) ([]interf
 			Page:    1,
 		},
 	}
-	tags, tagsResp, err := conn.Client.Tags.ListTags(project.ID, tagsOpts)
+	tags, tagsResp, err := input.Client.Tags.ListTags(project.ID, tagsOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +115,7 @@ func (conn *GitLabConnector) getProjectRefs(project *gogitlab.Project) ([]interf
 
 	for page := 1; page < tagsResp.TotalPages; page++ {
 		tagsOpts.ListOptions.Page = page
-		tags, _, err := conn.Client.Tags.ListTags(project.ID, tagsOpts)
+		tags, _, err := input.Client.Tags.ListTags(project.ID, tagsOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -131,11 +127,11 @@ func (conn *GitLabConnector) getProjectRefs(project *gogitlab.Project) ([]interf
 	return refs, nil
 }
 
-func (conn *GitLabConnector) getRefPackage(project *gogitlab.Project, ref string) (*composer.Package, error) {
+func (input *GitLabInput) getRefPackage(project *gogitlab.Project, ref string) (*composer.Package, error) {
 	var pkg composer.Package
 
 	// Check for a composer.json file
-	composerJSON, _, err := conn.Client.RepositoryFiles.GetRawFile(project.ID, "composer.json", &gogitlab.GetRawFileOptions{
+	composerJSON, _, err := input.Client.RepositoryFiles.GetRawFile(project.ID, "composer.json", &gogitlab.GetRawFileOptions{
 		Ref: &ref,
 	})
 
@@ -157,17 +153,17 @@ func (conn *GitLabConnector) getRefPackage(project *gogitlab.Project, ref string
 	return &pkg, nil
 }
 
-func (conn *GitLabConnector) getProjectVersions(project *gogitlab.Project) (map[string]*composer.Package, error) {
+func (input *GitLabInput) getProjectVersions(project *gogitlab.Project) (map[string]*composer.Package, error) {
 	versions := make(map[string]*composer.Package)
 
-	refs, err := conn.getProjectRefs(project)
+	refs, err := input.getProjectRefs(project)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, ref := range refs {
 		if branch, ok := ref.(*gogitlab.Branch); ok {
-			pkg, err := conn.getRefPackage(project, branch.Name)
+			pkg, err := input.getRefPackage(project, branch.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -180,7 +176,7 @@ func (conn *GitLabConnector) getProjectVersions(project *gogitlab.Project) (map[
 
 			versions[pkg.Version] = pkg
 		} else if tag, ok := ref.(*gogitlab.Tag); ok {
-			pkg, err := conn.getRefPackage(project, tag.Name)
+			pkg, err := input.getRefPackage(project, tag.Name)
 			if err != nil {
 				return nil, err
 			}
@@ -222,10 +218,10 @@ func (conn *GitLabConnector) getProjectVersions(project *gogitlab.Project) (map[
 	return versions, nil
 }
 
-func (conn *GitLabConnector) GetPackages() (composer.Packages, error) {
-	packages := make(composer.Packages)
+func (input *GitLabInput) GetPackages() (repository.Packages, error) {
+	packages := make(repository.Packages)
 
-	projects, err := conn.getProjects()
+	projects, err := input.getProjects()
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +229,7 @@ func (conn *GitLabConnector) GetPackages() (composer.Packages, error) {
 	for _, project := range projects {
 		log.Printf("Loading %q", project.PathWithNamespace)
 
-		versions, err := conn.getProjectVersions(project)
+		versions, err := input.getProjectVersions(project)
 		if err != nil {
 			return nil, err
 		}
@@ -244,11 +240,11 @@ func (conn *GitLabConnector) GetPackages() (composer.Packages, error) {
 	return packages, nil
 }
 
-func (conn *GitLabConnector) GetPackage(packageName string) (composer.PackageVersions, error) {
-	project, _, err := conn.Client.Projects.GetProject(packageName)
+func (input *GitLabInput) GetPackage(packageName string) (composer.PackageVersions, error) {
+	project, _, err := input.Client.Projects.GetProject(packageName)
 	if err != nil {
 		return nil, err
 	}
 
-	return conn.getProjectVersions(project)
+	return input.getProjectVersions(project)
 }

@@ -9,12 +9,24 @@ import (
 	"path"
 	"strings"
 
-	"github.com/zachomedia/composerrepo/pkg/composer"
+	"github.com/zachomedia/composerrepo/pkg/composer/repository"
 )
 
 type FileOutput struct {
 	Out      string
 	BasePath string
+}
+
+func (fo *FileOutput) Init(conf map[string]interface{}) error {
+	if dir, ok := conf["dir"]; ok {
+		fo.Out = dir.(string)
+	}
+
+	if basePath, ok := conf["basePath"]; ok {
+		fo.BasePath = basePath.(string)
+	}
+
+	return nil
 }
 
 func (fo *FileOutput) ensureFolder(f string) error {
@@ -47,11 +59,11 @@ func (fo *FileOutput) GetBasePath() string {
 	return fo.BasePath
 }
 
-func (fo *FileOutput) GetRepository() (*composer.Repository, error) {
+func (fo *FileOutput) GetRepository() (*repository.Repository, error) {
 	return fo.Get("packages.json")
 }
 
-func (fo *FileOutput) Get(name string) (*composer.Repository, error) {
+func (fo *FileOutput) Get(name string) (*repository.Repository, error) {
 	fPath := path.Join(fo.Out, path.Join(strings.Split(name, "/")...))
 	log.Printf("Reading package %q", fPath)
 
@@ -64,7 +76,7 @@ func (fo *FileOutput) Get(name string) (*composer.Repository, error) {
 
 	decoder := json.NewDecoder(f)
 
-	repo := composer.Repository{}
+	repo := repository.Repository{}
 	err = decoder.Decode(&repo)
 	if err != nil {
 		return nil, err
@@ -73,12 +85,12 @@ func (fo *FileOutput) Get(name string) (*composer.Repository, error) {
 	return &repo, nil
 }
 
-func (fo *FileOutput) WriteRepository(repo *composer.Repository) error {
+func (fo *FileOutput) WriteRepository(repo *repository.Repository) error {
 	_, err := fo.Write("packages.json", repo)
 	return err
 }
 
-func (fo *FileOutput) Write(name string, repo *composer.Repository) (string, error) {
+func (fo *FileOutput) Write(name string, repo *repository.Repository) (string, error) {
 	components := strings.Split(name, "/")
 
 	// Ensure the directory structure is correct.
