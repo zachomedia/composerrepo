@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/zachomedia/composerrepo/pkg/composer"
 	"github.com/zachomedia/composerrepo/pkg/config"
@@ -58,23 +59,42 @@ func serve(c *cli.Context) error {
 		return err
 	}
 
+	generating := false
+
 	// Do an initial generation of the repository
 	if !c.Bool("no-generate") {
+		generating = true
 		log.Println("Generating initial repository")
 
-		err = composer.Generate(conf)
-		if err != nil {
-			return err
-		}
+		go (func() {
+			err := composer.Generate(conf)
+			if err != nil {
+				log.Panic(err)
+			}
+
+			generating = false
+		})()
 	}
 
 	// Handle incoming requests and update packages as requested
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "OK")
+	})
+
+	mux := sync.Mutex{}
 	http.HandleFunc(c.String("listen-path"), func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("input") == "" || r.URL.Query().Get("package") == "" {
 			log.Printf("Expected 'input' and 'package' params")
 
 			w.WriteHeader(400)
 			fmt.Fprintf(w, "Expected 'input' and 'package' params")
+			return
+		}
+
+		if generating {
+			log.Printf("Refusing update due to generation in progress: %s:%s", r.URL.Query().Get("input"), r.URL.Query().Get("package"))
+			w.WriteHeader(502)
+			fmt.Fprintf(w, "Unable to update as initial repository generation is in progress")
 			return
 		}
 
@@ -93,6 +113,9 @@ func serve(c *cli.Context) error {
 			fmt.Fprintf(w, "Unknown input %q", pkgInfo.InputID)
 			return
 		}
+
+		mux.Lock()
+		defer mux.Unlock()
 
 		err := composer.Update(conf, []*composer.PackageInfo{pkgInfo})
 		if err != nil {
