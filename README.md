@@ -1,11 +1,15 @@
 ## Config
 
-Sample `connectors.yml` config file.
+Sample `config.yml` config file.
 
 ```
-gitlab:
-  type: gitlab
-  url: https://gitlab.com
-  token: YOUR_TOKEN
-  group: group
+providers: true
+output:
+  type: file
+  dir: out
+inputs:
+  - type: gitlab
+    url: https://gitlab.com
+    token: TOKEN
+    group: group
 ```
