@@ -8,7 +8,8 @@ output:
   type: file
   dir: out
 inputs:
-  - type: gitlab
+  gitlab:
+    type: gitlab
     url: https://gitlab.com
     token: TOKEN
     group: group
