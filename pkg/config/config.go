@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/zachomedia/composerrepo/pkg/composer"
 	"github.com/zachomedia/composerrepo/pkg/input/gitlab"
@@ -54,7 +55,7 @@ func ConfigFromYAML(reader io.Reader) (*composer.Config, error) {
 			return nil, fmt.Errorf("Unknown input type %q for %q", raw["type"].(string), k)
 		}
 
-		conf.Inputs[k] = inputType
+		conf.Inputs[k] = reflect.New(reflect.ValueOf(inputType).Elem().Type()).Interface().(composer.Input)
 		err = conf.Inputs[k].Init(k, raw)
 		if err != nil {
 			return nil, err
@@ -67,7 +68,7 @@ func ConfigFromYAML(reader io.Reader) (*composer.Config, error) {
 			return nil, fmt.Errorf("Unknown transformer type %q for %q", raw["type"].(string), k)
 		}
 
-		conf.Transformers[k] = transformerType
+		conf.Transformers[k] = reflect.New(reflect.ValueOf(transformerType).Elem().Type()).Interface().(composer.Transform)
 		err = conf.Transformers[k].Init(k, raw)
 		if err != nil {
 			return nil, err
@@ -82,7 +83,7 @@ func ConfigFromYAML(reader io.Reader) (*composer.Config, error) {
 		return nil, fmt.Errorf("Unknown output type %q", rawConfig.Output["type"].(string))
 	}
 
-	conf.Output = outputType
+	conf.Output = reflect.New(reflect.ValueOf(outputType).Elem().Type()).Interface().(composer.Output)
 	err = conf.Output.Init(rawConfig.Output)
 	if err != nil {
 		return nil, err

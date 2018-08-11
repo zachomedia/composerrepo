@@ -173,7 +173,7 @@ func Update(conf *Config, packageInfos []*PackageInfo) error {
 				providerID := fmt.Sprintf("p/provider-%s$%%hash%%.json", packageInfo.InputID)
 				providerInfo, ok := repo.ProviderIncludes[providerID]
 				if !ok {
-					return fmt.Errorf("No connector matching %q", packageInfo.InputID)
+					return fmt.Errorf("No input matching %q", packageInfo.InputID)
 				}
 
 				provider := &Repository{}
