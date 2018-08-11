@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -143,12 +144,6 @@ func (input *GitLabInput) getRefPackage(project *gogitlab.Project, ref string) (
 
 	pkg.Name = strings.ToLower(project.PathWithNamespace)
 
-	pkg.Source = &composer.Source{
-		URL:       fmt.Sprintf("%s.git", project.WebURL),
-		Type:      "git",
-		Reference: ref,
-	}
-
 	return &pkg, nil
 }
 
@@ -171,7 +166,25 @@ func (input *GitLabInput) getProjectVersions(project *gogitlab.Project) (map[str
 			pkg.Version = fmt.Sprintf("dev-%s", branch.Name)
 
 			// Set source by commit
-			pkg.Source.Reference = branch.Commit.ID
+			pkg.Source = &composer.Source{
+				URL:       fmt.Sprintf("%s.git", project.WebURL),
+				Type:      "git",
+				Reference: branch.Commit.ID,
+			}
+
+			// Get the Archive URL
+			u, err := input.Client.BaseURL().Parse(fmt.Sprintf("projects/%s/repository/archive.tar.gz", url.QueryEscape(project.PathWithNamespace)))
+			q := u.Query()
+			q.Set("sha", branch.Commit.ID)
+			u.RawQuery = q.Encode()
+			if err != nil {
+				return nil, err
+			}
+
+			pkg.Dist = &composer.Dist{
+				URL:  u.String(),
+				Type: "tar",
+			}
 
 			versions[pkg.Version] = pkg
 		} else if tag, ok := ref.(*gogitlab.Tag); ok {
@@ -184,7 +197,25 @@ func (input *GitLabInput) getProjectVersions(project *gogitlab.Project) (map[str
 			pkg.Version = tag.Name
 
 			// Set source by commit
-			pkg.Source.Reference = tag.Commit.ID
+			pkg.Source = &composer.Source{
+				URL:       fmt.Sprintf("%s.git", project.WebURL),
+				Type:      "git",
+				Reference: tag.Commit.ID,
+			}
+
+			// Get the Archive URL
+			u, err := input.Client.BaseURL().Parse(fmt.Sprintf("projects/%s/repository/archive.tar.gz", url.QueryEscape(project.PathWithNamespace)))
+			q := u.Query()
+			q.Set("sha", tag.Commit.ID)
+			u.RawQuery = q.Encode()
+			if err != nil {
+				return nil, err
+			}
+
+			pkg.Dist = &composer.Dist{
+				URL:  u.String(),
+				Type: "tar",
+			}
 
 			// Convert Drupal version number to valid version number
 			r, err := regexp.Compile("\\d+\\.x-(\\d+\\.\\d+(-.*)?)")

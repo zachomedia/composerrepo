@@ -190,6 +190,11 @@ func Update(conf *Config, packageInfos []*PackageInfo) error {
 				providers[packageInfo.InputID] = provider
 			}
 
+			// Add a unique ID to all versions
+			for _, version := range pkg {
+				version.UID = fmt.Sprintf("%s@%s", version.Name, version.Version)
+			}
+
 			contents, hash, err := generateContentsAndHash(&Repository{
 				Packages: Packages{
 					packageInfo.PackageName: pkg,
