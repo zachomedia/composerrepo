@@ -16,11 +16,12 @@ type Input interface {
 	GetPackage(packageName string) (PackageVersions, error)
 }
 
-type Transform interface {
-	Init(id string, conf map[string]interface{}) error
+type Transformer interface {
+	Init(id int, conf map[string]interface{}) error
 
-	Skip(input *Input, pkgName string) (bool, error)
-	Transform(input *Input, pkg *Package) error
+	GetID() int
+
+	Transform(input Input, name string, pkg PackageVersions) error
 }
 
 type Output interface {
@@ -35,7 +36,7 @@ type Output interface {
 type Config struct {
 	UseProviders bool
 	Inputs       map[string]Input
-	Transformers map[string]Transform
+	Transformers []Transformer
 	Output       Output
 }
 
@@ -89,6 +90,13 @@ func Generate(conf *Config) error {
 		}
 
 		for name, versions := range pkgs {
+			// Allow transformers to modify the package
+			for _, transformer := range conf.Transformers {
+				if err := transformer.Transform(connector, name, versions); err != nil {
+					return err
+				}
+			}
+
 			if conf.UseProviders {
 				// Add a unique ID to all versions
 				for _, version := range versions {
@@ -165,6 +173,13 @@ func Update(conf *Config, packageInfos []*PackageInfo) error {
 		pkg, err := conf.Inputs[packageInfo.InputID].GetPackage(packageInfo.PackageName)
 		if err != nil {
 			return err
+		}
+
+		// Allow transformers to modify the package
+		for _, transformer := range conf.Transformers {
+			if err := transformer.Transform(conf.Inputs[packageInfo.InputID], packageInfo.PackageName, pkg); err != nil {
+				return err
+			}
 		}
 
 		if conf.UseProviders {

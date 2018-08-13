@@ -10,6 +10,7 @@ import (
 	"github.com/zachomedia/composerrepo/pkg/input/gitlab"
 	"github.com/zachomedia/composerrepo/pkg/output/azure"
 	"github.com/zachomedia/composerrepo/pkg/output/file"
+	"github.com/zachomedia/composerrepo/pkg/transformer/static"
 	yaml "gopkg.in/yaml.v2"
 )
 
@@ -17,7 +18,9 @@ var InputTypes = map[string]composer.Input{
 	"gitlab": &gitlab.GitLabInput{},
 }
 
-var TransformerTypes = map[string]composer.Transform{}
+var TransformerTypes = map[string]composer.Transformer{
+	"static": &static.StaticTransformer{},
+}
 
 var OutputTypes = map[string]composer.Output{
 	"azure": &azure.AzureOutput{},
@@ -28,7 +31,7 @@ func ConfigFromYAML(reader io.Reader) (*composer.Config, error) {
 	type config struct {
 		UseProviders bool                              `yaml:"providers"`
 		Inputs       map[string]map[string]interface{} `yaml:"inputs"`
-		Transformers map[string]map[string]interface{} `yaml:"transformers"`
+		Transformers []map[string]interface{}          `yaml:"transformers"`
 		Output       map[string]interface{}            `yaml:"output"`
 	}
 
@@ -46,7 +49,7 @@ func ConfigFromYAML(reader io.Reader) (*composer.Config, error) {
 	conf := &composer.Config{
 		UseProviders: rawConfig.UseProviders,
 		Inputs:       make(map[string]composer.Input),
-		Transformers: make(map[string]composer.Transform),
+		Transformers: make([]composer.Transformer, len(rawConfig.Transformers)),
 	}
 
 	for k, raw := range rawConfig.Inputs {
@@ -65,10 +68,10 @@ func ConfigFromYAML(reader io.Reader) (*composer.Config, error) {
 	for k, raw := range rawConfig.Transformers {
 		transformerType, ok := TransformerTypes[raw["type"].(string)]
 		if !ok {
-			return nil, fmt.Errorf("Unknown transformer type %q for %q", raw["type"].(string), k)
+			return nil, fmt.Errorf("Unknown transformer type %q (transformer %d)", raw["type"].(string), k)
 		}
 
-		conf.Transformers[k] = reflect.New(reflect.ValueOf(transformerType).Elem().Type()).Interface().(composer.Transform)
+		conf.Transformers[k] = reflect.New(reflect.ValueOf(transformerType).Elem().Type()).Interface().(composer.Transformer)
 		err = conf.Transformers[k].Init(k, raw)
 		if err != nil {
 			return nil, err
