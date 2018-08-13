@@ -2,6 +2,7 @@ package static
 
 import (
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/zachomedia/composerrepo/pkg/composer"
@@ -41,9 +42,12 @@ func (transformer *StaticTransformer) GetID() int {
 }
 
 func (transformer *StaticTransformer) Transform(input composer.Input, name string, pkg composer.PackageVersions) error {
-	if len(transformer.Packages) > 0 && sort.SearchStrings(transformer.Packages, name) == len(transformer.Packages) {
+	indx := sort.SearchStrings(transformer.Packages, name)
+	if len(transformer.Packages) > 0 && (indx == len(transformer.Packages) || transformer.Packages[indx] != name) {
 		return nil
 	}
+
+	log.Printf("Transforming %q", name)
 
 	for k, v := range transformer.Values {
 		switch k {
