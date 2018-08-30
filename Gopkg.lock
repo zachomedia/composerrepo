@@ -32,6 +32,15 @@
   version = "v1.20.0"
 
 [[projects]]
+  name = "github.com/vmihailenco/msgpack"
+  packages = [
+    ".",
+    "codes"
+  ]
+  revision = "935c5b540faab4d4922ae6f1fddcf77a726f259c"
+  version = "v4.0.0"
+
+[[projects]]
   name = "github.com/xanzy/go-gitlab"
   packages = ["."]
   revision = "4f616cbce6a5f335461881701f772d8b8e16c2f6"
@@ -58,10 +67,14 @@
 [[projects]]
   name = "google.golang.org/appengine"
   packages = [
+    ".",
+    "datastore",
     "internal",
+    "internal/app_identity",
     "internal/base",
     "internal/datastore",
     "internal/log",
+    "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
     "urlfetch"
@@ -78,6 +91,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3429702ef88d7933066016113ec440ba3685eecf0ef9ed1d55da32632bc445ce"
+  inputs-digest = "8032a3de177f362c1cbbc8f967a6d39fd243649be04efcbd0f95a0c56350f704"
   solver-name = "gps-cdcl"
   solver-version = 1

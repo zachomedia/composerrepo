@@ -15,6 +15,7 @@ import (
 )
 
 var InputTypes = map[string]composer.Input{
+	"static": &static.StaticInput{},
 	"gitlab": &gitlab.GitLabInput{},
 }
 

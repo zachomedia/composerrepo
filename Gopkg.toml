@@ -35,3 +35,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/Azure/azure-storage-blob-go"
+
+[[constraint]]
+  name = "github.com/vmihailenco/msgpack"
+  version = "4.0.0"
