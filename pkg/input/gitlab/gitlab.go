@@ -59,7 +59,7 @@ func (input *GitLabInput) getProjects() ([]*gogitlab.Project, error) {
 	if err != nil {
 		return nil, err
 	}
-	for page := 2; page < res.TotalPages; page++ {
+	for page := 2; page <= res.TotalPages; page++ {
 		opts.ListOptions.Page = page
 		inProjects, _, err := input.Client.Groups.ListGroupProjects(input.Group.ID, opts)
 		if err != nil {
