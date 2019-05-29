@@ -2,69 +2,88 @@
 
 
 [[projects]]
+  digest = "1:6f302284bb48712a01cdcd3216e8bbb293d1edb618f55b5fe7f92521cce930c7"
   name = "github.com/Azure/azure-pipeline-go"
   packages = ["pipeline"]
+  pruneopts = ""
   revision = "7571e8eb0876932ab505918ff7ed5107773e5ee2"
   version = "0.1.7"
 
 [[projects]]
   branch = "master"
+  digest = "1:740c75b65523f72dd2f0939367d9c7fb4a0310d753932c9cbdf7b67a2e93f4a2"
   name = "github.com/Azure/azure-storage-blob-go"
   packages = ["2018-03-28/azblob"]
+  pruneopts = ""
   revision = "197d1c0aea1b9eedbbaee0a1a32bf81e879bde80"
 
 [[projects]]
+  digest = "1:f958a1c137db276e52f0b50efee41a1a389dcdded59a69711f3e872757dab34b"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
+  pruneopts = ""
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
   version = "v1.1.0"
 
 [[projects]]
   branch = "master"
+  digest = "1:9abc49f39e3e23e262594bb4fb70abf74c0c99e94f99153f43b143805e850719"
   name = "github.com/google/go-querystring"
   packages = ["query"]
+  pruneopts = ""
   revision = "53e6ce116135b80d037921a7fdd5138cf32d7a8a"
 
 [[projects]]
+  digest = "1:e85837cb04b78f61688c6eba93ea9d14f60d611e2aaf8319999b1a60d2dafbfa"
   name = "github.com/urfave/cli"
   packages = ["."]
+  pruneopts = ""
   revision = "cfb38830724cc34fedffe9a2a29fb54fa9169cd1"
   version = "v1.20.0"
 
 [[projects]]
+  digest = "1:6665e5cd6b160bde7792dd364ac53a2689ad226bc11b9c4032701a10439f2ce1"
   name = "github.com/vmihailenco/msgpack"
   packages = [
     ".",
-    "codes"
+    "codes",
   ]
+  pruneopts = ""
   revision = "935c5b540faab4d4922ae6f1fddcf77a726f259c"
   version = "v4.0.0"
 
 [[projects]]
+  digest = "1:1a660c1790fa274b742082591dcf4032f4d8959b0e1f9c75229c4a8d9f159335"
   name = "github.com/xanzy/go-gitlab"
   packages = ["."]
+  pruneopts = ""
   revision = "4f616cbce6a5f335461881701f772d8b8e16c2f6"
   version = "v0.10.8"
 
 [[projects]]
   branch = "master"
+  digest = "1:b970d5e8b11b4c8927a06298566eb8daf66a009702688b4142cc2a961e374e91"
   name = "golang.org/x/net"
   packages = [
     "context",
-    "context/ctxhttp"
+    "context/ctxhttp",
   ]
+  pruneopts = ""
   revision = "f4c29de78a2a91c00474a2e689954305c350adf9"
 
 [[projects]]
   branch = "master"
+  digest = "1:a8172cf4304ef01f0c7dd634c331880247d10f9e28b041821f2321a8e4bb3b7c"
   name = "golang.org/x/oauth2"
   packages = [
     ".",
-    "internal"
+    "internal",
   ]
+  pruneopts = ""
   revision = "3d292e4d0cdc3a0113e6d207bb137145ef1de42f"
 
 [[projects]]
+  digest = "1:c1771ca6060335f9768dff6558108bc5ef6c58506821ad43377ee23ff059e472"
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -77,20 +96,29 @@
     "internal/modules",
     "internal/remote_api",
     "internal/urlfetch",
-    "urlfetch"
+    "urlfetch",
   ]
+  pruneopts = ""
   revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
   version = "v1.1.0"
 
 [[projects]]
+  digest = "1:f0620375dd1f6251d9973b5f2596228cc8042e887cd7f827e4220bc1ce8c30e2"
   name = "gopkg.in/yaml.v2"
   packages = ["."]
+  pruneopts = ""
   revision = "5420a8b6744d3b0345ab293f6fcba19c978f1183"
   version = "v2.2.1"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "8032a3de177f362c1cbbc8f967a6d39fd243649be04efcbd0f95a0c56350f704"
+  input-imports = [
+    "github.com/Azure/azure-storage-blob-go/2018-03-28/azblob",
+    "github.com/urfave/cli",
+    "github.com/vmihailenco/msgpack",
+    "github.com/xanzy/go-gitlab",
+    "gopkg.in/yaml.v2",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
