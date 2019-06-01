@@ -127,6 +127,10 @@ func (input *GitLabInput) getProjectRefs(project *gogitlab.Project) ([]interface
 	return refs, nil
 }
 
+func getComposerName(project *gogitlab.Project) string {
+	return strings.ToLower(fmt.Sprintf("%s/%s", strings.ReplaceAll(project.Namespace.FullPath, "/", "-"), project.Path))
+}
+
 func (input *GitLabInput) getRefPackage(project *gogitlab.Project, ref string) (*composer.Package, error) {
 	var pkg composer.Package
 
@@ -142,7 +146,7 @@ func (input *GitLabInput) getRefPackage(project *gogitlab.Project, ref string) (
 		}
 	}
 
-	pkg.Name = strings.ToLower(project.PathWithNamespace)
+	pkg.Name = getComposerName(project)
 
 	return &pkg, nil
 }
@@ -173,7 +177,7 @@ func (input *GitLabInput) getProjectVersions(project *gogitlab.Project) (map[str
 			}
 
 			// Get the Archive URL
-			u, err := input.Client.BaseURL().Parse(fmt.Sprintf("projects/%s/repository/archive.tar.gz", url.QueryEscape(project.PathWithNamespace)))
+			u, err := input.Client.BaseURL().Parse(fmt.Sprintf("projects/%s/repository/archive.tar.gz", url.QueryEscape(getComposerName(project))))
 			q := u.Query()
 			q.Set("sha", branch.Commit.ID)
 			u.RawQuery = q.Encode()
@@ -204,7 +208,7 @@ func (input *GitLabInput) getProjectVersions(project *gogitlab.Project) (map[str
 			}
 
 			// Get the Archive URL
-			u, err := input.Client.BaseURL().Parse(fmt.Sprintf("projects/%s/repository/archive.tar.gz", url.QueryEscape(project.PathWithNamespace)))
+			u, err := input.Client.BaseURL().Parse(fmt.Sprintf("projects/%s/repository/archive.tar.gz", url.QueryEscape(getComposerName(project))))
 			q := u.Query()
 			q.Set("sha", tag.Commit.ID)
 			u.RawQuery = q.Encode()
@@ -257,14 +261,14 @@ func (input *GitLabInput) GetPackages() (composer.Packages, error) {
 	}
 
 	for _, project := range projects {
-		log.Printf("Loading %q", project.PathWithNamespace)
+		log.Printf("Loading %q", getComposerName(project))
 
 		versions, err := input.getProjectVersions(project)
 		if err != nil {
 			return nil, err
 		}
 
-		packages[strings.ToLower(project.PathWithNamespace)] = versions
+		packages[getComposerName(project)] = versions
 	}
 
 	return packages, nil
